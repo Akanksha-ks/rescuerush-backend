@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
-require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -20,34 +19,41 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/emergency', require('./routes/emergency'));
 app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/location', require('./routes/location'));
-// Add this to your existing server.js routes
 app.use('/api/notifications', require('./routes/notifications'));
 
-// Health check with DB status
-app.get('/health', (req, res) => {
-  const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
-  
-  res.json({ 
-    status: 'OK', 
-    message: 'WomenRescueRush Backend is running',
-    database: dbStatus,
-    database_type: 'MongoDB Local',
-    timestamp: new Date().toISOString()
+// Debug endpoint to see all environment variables
+app.get('/debug', (req, res) => {
+  res.json({
+    MONGODB_URI: process.env.MONGODB_URI ? 'SET' : 'NOT SET',
+    PORT: process.env.PORT,
+    NODE_ENV: process.env.NODE_ENV,
+    allEnvVars: process.env
   });
 });
 
-// Socket.io for real-time features
+// Health check
+app.get('/health', (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
+  const isAtlas = process.env.MONGODB_URI && process.env.MONGODB_URI.includes('mongodb+srv');
+  
+  res.json({ 
+    status: 'OK', 
+    database: dbStatus,
+    database_type: isAtlas ? 'MongoDB Atlas' : 'Local MongoDB',
+    mongodb_uri_set: !!process.env.MONGODB_URI,
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Socket.io
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
-  
   socket.on('location-update', (data) => {
     socket.broadcast.emit('location-broadcast', data);
   });
-  
   socket.on('emergency-alert', (data) => {
     socket.broadcast.emit('new-emergency', data);
   });
-  
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
@@ -55,35 +61,42 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 
-// 🔧 MongoDB Connection (remove deprecated options)
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rescuerush';
+// 🔧 DEBUG: Check what's happening
+console.log('=== RAILWAY DEBUG INFORMATION ===');
+console.log('Process environment keys:', Object.keys(process.env));
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'SET' : 'NOT SET');
+console.log('PORT:', process.env.PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
-// Connect to MongoDB first, then start server
+// Use Railway environment variable if set, otherwise exit
+if (!process.env.MONGODB_URI) {
+  console.error('❌ CRITICAL: MONGODB_URI is not set in Railway environment variables');
+  console.error('💡 Go to Railway Dashboard → Variables → Add MONGODB_URI');
+  console.error('💡 Value should be: mongodb+srv://ksakanksha022_db_user:akanksha123@cluster0.f0nrkos.mongodb.net/rescuerush?retryWrites=true&w=majority');
+  process.exit(1);
+}
+
+const MONGODB_URI = process.env.MONGODB_URI;
+
+console.log('✅ Using MONGODB_URI from Railway environment variables');
+console.log('📡 Database Type: MongoDB Atlas');
+
+// Connect to MongoDB
 mongoose.connect(MONGODB_URI)
 .then(() => {
-  console.log('✅ MongoDB Connected Successfully');
-  console.log('💾 Database: Local MongoDB');
-  console.log(`📁 Database Name: rescuerush`);
+  console.log('✅ MongoDB Atlas Connected Successfully');
+  console.log('💾 Database: MongoDB Atlas');
+  console.log('🌐 Cluster: Cluster0');
   
-  // Now start the server after DB is connected
   server.listen(PORT, '0.0.0.0', () => {
-    console.log('🚀 WomenRescueRush Backend Server Started');
-    console.log('═'.repeat(50));
-    console.log(`📍 Local Access: http://localhost:${PORT}/health`);
-    console.log(`📍 Network Access: http://172.26.44.248:${PORT}/health`);
-    console.log('═'.repeat(50));
-    console.log('🗄️  Database Status:');
-    console.log(`   💾 Type: MongoDB Local`);
-    console.log(`   🔗 Status: ✅ Connected`);
-    console.log(`   📁 Database: rescuerush`);
-    console.log('═'.repeat(50));
+    console.log('🚀 Server running on port', PORT);
+    console.log('📍 Health check: /health');
+    console.log('📍 Debug info: /debug');
   });
 })
 .catch((error) => {
-  console.error('❌ MongoDB Connection Error:', error);
-  console.log('💡 Make sure MongoDB is running:');
-  console.log('   Windows: net start MongoDB');
-  console.log('   Mac: brew services start mongodb-community');
-  console.log('   Or check MongoDB Compass connection');
-  process.exit(1); // Exit if DB connection fails
+  console.error('❌ MongoDB Connection Failed:');
+  console.error('Error:', error.message);
+  console.error('Code:', error.code);
+  process.exit(1);
 });
