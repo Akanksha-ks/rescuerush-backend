@@ -31,11 +31,13 @@ app.use('/api/contacts', require('./routes/contacts'));
 app.use('/api/location', require('./routes/location'));
 app.use('/api/notifications', require('./routes/notifications'));
 
+// ✅ SINGLE Root endpoint
 app.get('/', (req, res) => {
   res.json({
     message: '🚀 WomenRescueRush Backend API is Running!',
     version: '1.0.0',
     status: 'Active',
+    environment: 'Render.com',
     endpoints: {
       health: '/health',
       auth: '/api/auth',
@@ -46,7 +48,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check - simplified for production
+// Health check
 app.get('/health', (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
   
@@ -54,16 +56,8 @@ app.get('/health', (req, res) => {
     status: 'OK', 
     database: dbStatus,
     environment: process.env.NODE_ENV || 'development',
+    platform: 'Render.com',
     timestamp: new Date().toISOString()
-  });
-});
-
-// Root endpoint
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'WomenRescueRush Backend API',
-    version: '1.0.0',
-    status: 'Running'
   });
 });
 
@@ -83,7 +77,7 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 
-// MongoDB connection - simplified for production
+// MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
@@ -91,35 +85,22 @@ if (!MONGODB_URI) {
   process.exit(1);
 }
 
-console.log('🚀 Starting WomenRescueRush Backend...');
+console.log('🚀 Starting WomenRescueRush Backend on Render...');
 console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
 
-// Connect to MongoDB with better error handling
-mongoose.connect(MONGODB_URI, {
-  // Remove deprecated options
-})
+// Connect to MongoDB
+mongoose.connect(MONGODB_URI)
 .then(() => {
   console.log('✅ MongoDB Atlas Connected Successfully');
   
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`🎉 Server running on port ${PORT}`);
-    console.log(`📍 Health check: http://localhost:${PORT}/health`);
-    
-    // Log Render-specific info
-    if (process.env.NODE_ENV === 'production') {
-      console.log('🚀 Running in PRODUCTION mode');
-      console.log('☁️  Deployed on Render.com');
-    }
+    console.log('☁️  Deployed on Render.com');
+    console.log(`📍 Health check: https://rescuerush-backend.onrender.com/health`);
   });
 })
 .catch((error) => {
-  console.error('❌ MongoDB Connection Failed:');
-  console.error('Error:', error.message);
-  
-  if (error.code === 8000) {
-    console.log('🔑 Authentication issue - check MongoDB Atlas credentials');
-  }
-  
+  console.error('❌ MongoDB Connection Failed:', error.message);
   process.exit(1);
 });
 
