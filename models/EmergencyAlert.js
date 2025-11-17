@@ -1,7 +1,31 @@
 const mongoose = require('mongoose');
 
+// ✅ PROPER evidence schema definition
+const evidenceSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['photo', 'audio', 'video'],
+    required: true
+  },
+  filename: String,
+  url: String,
+  thumbnailUrl: String,
+  duration: Number,
+  size: Number,
+  mimetype: String,
+  uploadedAt: {
+    type: Date,
+    default: Date.now
+  },
+  description: String
+});
+
 const emergencyAlertSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  },
   triggerType: { 
     type: String, 
     enum: ['sos', 'shake', 'voice', 'manual', 'auto'],
@@ -11,9 +35,10 @@ const emergencyAlertSchema = new mongoose.Schema({
     latitude: Number,
     longitude: Number,
     address: String,
-    accuracy: Number
+    accuracy: Number,
+    timestamp: Date
   },
-  // ✅ ADDED: Safety assessment data from threat analyzer
+  // ✅ UPDATED: Safety assessment data from threat analyzer
   safetyAssessment: {
     safety_score: Number,
     risk_level: String,
@@ -30,14 +55,21 @@ const emergencyAlertSchema = new mongoose.Schema({
     isConnected: Boolean,
     isInternetReachable: Boolean
   },
-  audioEvidence: String,
-  photoEvidence: String,
-  videoEvidence: String,
-  batteryLevel: Number,
-  networkInfo: String,
+  // ❌ REMOVED: Duplicate individual evidence fields
+  // audioEvidence: String,  // REMOVE THIS
+  // photoEvidence: String,  // REMOVE THIS  
+  // videoEvidence: String,  // REMOVE THIS
+  
+  // ✅ KEEP: Unified evidence array with proper schema
+  evidence: [evidenceSchema],
+  
   threatLevel: { type: Number, min: 1, max: 10 },
   timestamp: { type: Date, default: Date.now },
-  status: { type: String, enum: ['active', 'resolved', 'cancelled'], default: 'active' },
+  status: { 
+    type: String, 
+    enum: ['active', 'resolved', 'cancelled'], 
+    default: 'active' 
+  },
   responders: [{
     contactId: String,
     notifiedAt: Date,
@@ -45,14 +77,18 @@ const emergencyAlertSchema = new mongoose.Schema({
     responseTime: Number
   }],
   policeNotified: { type: Boolean, default: false },
-  evidence: [{
-    type: String,
-    filename: String,
-    size: Number,
-    mimetype: String,
-    uploadedAt: Date
-  }],
-  immediate: { type: Boolean, default: false }
+  immediate: { type: Boolean, default: false },
+  
+  // ❌ REMOVED: Duplicate evidence array (you had two!)
+  // evidence: [{  // REMOVE THIS DUPLICATE
+  //   type: String,
+  //   filename: String,
+  //   size: Number,
+  //   mimetype: String,
+  //   uploadedAt: Date
+  // }],
+}, {
+  timestamps: true // ✅ Adds createdAt and updatedAt automatically
 });
 
 // Add index for faster queries
