@@ -55,13 +55,14 @@ const emergencyAlertSchema = new mongoose.Schema({
     isConnected: Boolean,
     isInternetReachable: Boolean
   },
-  // ❌ REMOVED: Duplicate individual evidence fields
-  // audioEvidence: String,  // REMOVE THIS
-  // photoEvidence: String,  // REMOVE THIS  
-  // videoEvidence: String,  // REMOVE THIS
+  // ✅ KEEP: Individual evidence fields for backward compatibility
+  audioEvidence: String,
+  photoEvidence: String, 
+  videoEvidence: String,
   
-  // ✅ KEEP: Unified evidence array with proper schema
-  evidence: [evidenceSchema],
+  // ✅ KEEP: Battery level and network info as separate fields
+  batteryLevel: Number,
+  networkInfo: String,
   
   threatLevel: { type: Number, min: 1, max: 10 },
   timestamp: { type: Date, default: Date.now },
@@ -77,16 +78,12 @@ const emergencyAlertSchema = new mongoose.Schema({
     responseTime: Number
   }],
   policeNotified: { type: Boolean, default: false },
-  immediate: { type: Boolean, default: false },
   
-  // ❌ REMOVED: Duplicate evidence array (you had two!)
-  // evidence: [{  // REMOVE THIS DUPLICATE
-  //   type: String,
-  //   filename: String,
-  //   size: Number,
-  //   mimetype: String,
-  //   uploadedAt: Date
-  // }],
+  // ✅ KEEP: Unified evidence array with proper schema
+  evidence: [evidenceSchema],
+  
+  immediate: { type: Boolean, default: false },
+  cancelledAt: Date // ✅ ADD: For cancel emergency functionality
 }, {
   timestamps: true // ✅ Adds createdAt and updatedAt automatically
 });

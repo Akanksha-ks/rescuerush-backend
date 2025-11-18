@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: rescuerush-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://ksakanksha022_db_user:akanksha123@cluster0.f0nrkos.mongodb.net/rescuerush?retryWrites=true&w=majority
+      - key: JWT_SECRET
+        value: your_super_secret_jwt_key_change_in_production_12345
