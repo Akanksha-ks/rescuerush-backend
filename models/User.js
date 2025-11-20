@@ -1,5 +1,32 @@
 const mongoose = require('mongoose');
 
+const emergencyContactSchema = new mongoose.Schema({
+  name: { 
+    type: String, 
+    required: true 
+  },
+  phone: { 
+    type: String, 
+    required: true 
+  },
+  email: { 
+    type: String, 
+    required: true 
+  },
+  relationship: { 
+    type: String, 
+    default: 'Emergency Contact' 
+  },
+  priority: { 
+    type: Number, 
+    required: true 
+  },
+  addedAt: { 
+    type: Date, 
+    default: Date.now 
+  }
+});
+
 const userSchema = new mongoose.Schema({
   phone: { 
     type: String, 
@@ -21,14 +48,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  emergencyContacts: [{
-    name: String,
-    phone: String,
-    email: String,
-    relationship: String,
-    priority: Number,
-    addedAt: { type: Date, default: Date.now }
-  }],
+  emergencyContacts: [emergencyContactSchema],
   locationHistory: [{
     latitude: Number,
     longitude: Number,
@@ -46,5 +66,9 @@ userSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();
 });
+
+// Index for better query performance
+userSchema.index({ phone: 1 });
+userSchema.index({ 'emergencyContacts.addedAt': -1 });
 
 module.exports = mongoose.model('User', userSchema);
