@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema({
   emergencyContacts: [{
     name: String,
     phone: String,
+    email: String,
     relationship: String,
     priority: Number,
     addedAt: { type: Date, default: Date.now }

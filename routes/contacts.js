@@ -1,3 +1,4 @@
+// routes/contacts.js
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
@@ -15,13 +16,14 @@ router.get('/:userId', async (req, res) => {
 // Add Emergency Contact
 router.post('/:userId', async (req, res) => {
   try {
-    const { name, phone, relationship } = req.body;
+    const { name, phone, email, relationship } = req.body;
     
     const user = await User.findById(req.params.userId);
     
     user.emergencyContacts.push({
       name,
       phone,
+      email: email || '', // Added email field
       relationship,
       priority: user.emergencyContacts.length + 1,
       addedAt: new Date()
