@@ -67,8 +67,15 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-// Index for better query performance
-userSchema.index({ phone: 1 });
+// Remove duplicate index definitions - keep only one
+// Option 1: Remove schema.index() calls and keep the unique: true in schema definition
+// Option 2: Remove unique: true and use schema.index() instead
+
+// Since you already have unique: true on the phone field, remove the schema.index() call
+// If you need compound indexes, define them explicitly like this:
+// userSchema.index({ phone: 1, email: 1 }); // Only if you need compound index
+
+// Index for emergencyContacts query performance (only if needed)
 userSchema.index({ 'emergencyContacts.addedAt': -1 });
 
 module.exports = mongoose.model('User', userSchema);
