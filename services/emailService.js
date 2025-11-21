@@ -42,7 +42,7 @@ const sendEmergencyEmail = async (user, emergencyAlert, location = null) => {
 
     const emailPromises = emergencyContacts.map(contact => {
       const emailData = {
-        from: 'RescueRush Emergency <rescuerush.emergency@gmail.com>', // ✅ Your custom from address
+        from: 'RescueRush Emergency <onboarding@resend.dev>',
         to: contact.email,
         subject: `🚨 EMERGENCY: ${user.name || 'User'} Needs Immediate Help!`,
         html: `
