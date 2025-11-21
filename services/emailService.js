@@ -10,11 +10,13 @@ const createBrevoClient = () => {
   }
 
   try {
-    const defaultClient = brevo.ApiClient.instance;
-    const apiKey = defaultClient.authentications['api-key'];
-    apiKey.apiKey = process.env.BREVO_API_KEY;
+    // ✅ FIXED: Correct way to initialize Brevo client
+    const apiInstance = new brevo.TransactionalEmailsApi();
     
-    return new brevo.TransactionalEmailsApi();
+    // Configure API key authentication
+    apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+    
+    return apiInstance;
   } catch (error) {
     console.error('❌ Failed to create Brevo client:', error);
     return null;
@@ -48,21 +50,22 @@ const sendEmergencyEmail = async (user, emergencyAlert, location = null) => {
       : '';
 
     const emailPromises = emergencyContacts.map(contact => {
-      const emailData = new brevo.SendSmtpEmail();
+      // ✅ FIXED: Correct Brevo email object structure
+      const sendSmtpEmail = new brevo.SendSmtpEmail();
       
-      emailData.sender = {
+      sendSmtpEmail.sender = {
         name: 'RescueRush Emergency',
-        email: 'rescuerush.emergency@gmail.com' // ✅ Your Gmail address works!
+        email: 'rescuerush.emergency@gmail.com' // ✅ Your Gmail address
       };
       
-      emailData.to = [{
+      sendSmtpEmail.to = [{
         email: contact.email,
         name: contact.name
       }];
       
-      emailData.subject = `🚨 EMERGENCY: ${user.name || 'User'} Needs Immediate Help!`;
+      sendSmtpEmail.subject = `🚨 EMERGENCY: ${user.name || 'User'} Needs Immediate Help!`;
       
-      emailData.htmlContent = `
+      sendSmtpEmail.htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 2px solid #ff4444; border-radius: 10px;">
           <div style="background-color: #ff4444; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="margin: 0; font-size: 24px;">🚨 EMERGENCY SOS ALERT</h1>
@@ -145,7 +148,7 @@ const sendEmergencyEmail = async (user, emergencyAlert, location = null) => {
         </div>
       `;
 
-      return brevoClient.sendTransacEmail(emailData);
+      return brevoClient.sendTransacEmail(sendSmtpEmail);
     });
 
     const results = await Promise.allSettled(emailPromises);
