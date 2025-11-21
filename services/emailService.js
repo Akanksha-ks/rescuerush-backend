@@ -1,36 +1,20 @@
 // backend/services/emailService.js
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Create email transporter with production-ready configuration
-const createTransporter = () => {
-  // Check if email credentials are configured
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn('⚠️ Email credentials not configured - email notifications disabled');
+const createResendClient = () => {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️ Resend API key not configured - email notifications disabled');
     return null;
   }
 
   try {
-    // ✅ FIXED: Changed createTransporter to createTransport
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-      // Production optimizations
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 1000,
-      rateLimit: 5
-    });
+    return new Resend(process.env.RESEND_API_KEY);
   } catch (error) {
-    console.error('❌ Failed to create email transporter:', error);
+    console.error('❌ Failed to create Resend client:', error);
     return null;
   }
 };
 
-// Send emergency email to contacts
 const sendEmergencyEmail = async (user, emergencyAlert, location = null) => {
   try {
     const { emergencyContacts } = user;
@@ -40,15 +24,13 @@ const sendEmergencyEmail = async (user, emergencyAlert, location = null) => {
       return { sent: 0, total: 0, failed: 0 };
     }
 
-    const transporter = createTransporter();
-    if (!transporter) {
-      console.log('📧 Email service not configured - skipping email notifications');
+    const resend = createResendClient();
+    if (!resend) {
+      console.log('📧 Resend service not configured - skipping email notifications');
       return { sent: 0, total: emergencyContacts.length, failed: 0 };
     }
 
-    // Verify connection
-    await transporter.verify();
-    console.log('📧 Email server connection verified');
+    console.log('📧 Sending emails via Resend API...');
 
     const locationLink = location?.latitude && location?.longitude 
       ? `https://maps.google.com/?q=${location.latitude},${location.longitude}`
@@ -59,8 +41,8 @@ const sendEmergencyEmail = async (user, emergencyAlert, location = null) => {
       : '';
 
     const emailPromises = emergencyContacts.map(contact => {
-      const mailOptions = {
-        from: process.env.EMAIL_USER || 'emergency@rescuerush.com',
+      const emailData = {
+        from: 'RescueRush Emergency <rescuerush.emergency@gmail.com>', // ✅ Your custom from address
         to: contact.email,
         subject: `🚨 EMERGENCY: ${user.name || 'User'} Needs Immediate Help!`,
         html: `
@@ -147,7 +129,7 @@ const sendEmergencyEmail = async (user, emergencyAlert, location = null) => {
         `
       };
 
-      return transporter.sendMail(mailOptions);
+      return resend.emails.send(emailData);
     });
 
     const results = await Promise.allSettled(emailPromises);
@@ -156,21 +138,21 @@ const sendEmergencyEmail = async (user, emergencyAlert, location = null) => {
     const sent = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
     
-    console.log(`📧 Email notifications: ${sent} sent, ${failed} failed out of ${emergencyContacts.length} contacts`);
+    console.log(`📧 Resend API: ${sent} sent, ${failed} failed out of ${emergencyContacts.length} contacts`);
     
     results.forEach((result, index) => {
       const contact = emergencyContacts[index];
       if (result.status === 'fulfilled') {
-        console.log(`✅ Email sent to: ${contact.email} (${contact.name})`);
+        console.log(`✅ Email sent via Resend to: ${contact.email} (${contact.name})`);
       } else {
-        console.error(`❌ Failed to send email to: ${contact.email} (${contact.name})`, result.reason);
+        console.error(`❌ Failed to send email via Resend to: ${contact.email} (${contact.name})`, result.reason);
       }
     });
 
     return { sent, total: emergencyContacts.length, failed };
 
   } catch (error) {
-    console.error('❌ Error in sendEmergencyEmail:', error);
+    console.error('❌ Error in sendEmergencyEmail (Resend):', error);
     return { sent: 0, total: 0, failed: 0 };
   }
 };
