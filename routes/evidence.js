@@ -9,14 +9,14 @@ const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit for videos
+    fileSize: 10 * 1024 * 1024, // 10MB limit for photos/audio
   },
   fileFilter: (req, file, cb) => {
-    // Check file types
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/')) {
+    // Check file types - removed video
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('audio/')) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only images, audio, and video are allowed.'));
+      cb(new Error('Invalid file type. Only images and audio are allowed.'));
     }
   }
 });
@@ -40,7 +40,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       return res.status(404).json({ success: false, error: 'Emergency not found' });
     }
 
-    // ✅ UPDATED: Create evidence object with proper structure
+    // Create evidence object with proper structure
     const evidence = {
       type: type || getFileType(file.mimetype),
       filename: file.originalname,
@@ -74,7 +74,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// ✅ UPDATED: Get evidence for an emergency
+// Get evidence for an emergency
 router.get('/:emergencyId', async (req, res) => {
   try {
     const alert = await EmergencyAlert.findById(req.params.emergencyId)
@@ -101,7 +101,7 @@ router.get('/:emergencyId', async (req, res) => {
   }
 });
 
-// ✅ UPDATED: Delete specific evidence
+// Delete specific evidence
 router.delete('/:emergencyId/:evidenceId', async (req, res) => {
   try {
     const { emergencyId, evidenceId } = req.params;
@@ -132,7 +132,6 @@ router.delete('/:emergencyId/:evidenceId', async (req, res) => {
 function getFileType(mimetype) {
   if (mimetype.startsWith('image/')) return 'photo';
   if (mimetype.startsWith('audio/')) return 'audio';
-  if (mimetype.startsWith('video/')) return 'video';
   return 'file';
 }
 
@@ -140,7 +139,6 @@ function getEvidenceDescription(type, mimetype) {
   const descriptions = {
     photo: 'Emergency photo evidence',
     audio: 'Emergency audio recording', 
-    video: 'Emergency video recording',
     file: 'Emergency evidence file'
   };
   return descriptions[type] || 'Emergency evidence';
